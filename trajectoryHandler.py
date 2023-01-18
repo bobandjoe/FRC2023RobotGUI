@@ -28,6 +28,9 @@ used_waypoints = np.zeros(len(DEFINED_WAYPOINTS),dtype=bool)
 #global Waypoints
 waypoints = []
 
+#global Pose2D waypoints for quintic trajectory
+pose2dPoints = []
+
 def getCoords(state):
     return (meterstoPixels(state.pose.X()),meterstoPixels(state.pose.Y()))
 
@@ -75,7 +78,7 @@ def fixBoundaryTrespassing(coords):
 def distance(x1,y1,x2,y2):
     return math.sqrt(math.pow((x1-x2),2)+math.pow((y1-y2),2))
 
-def generate(startX,startY,startAngle,endX,endY,endAngle):
+def generateCubic(startX,startY,startAngle,endX,endY,endAngle):
     startPoint = geometry.Pose2d(pixeltoMeters(startX),pixeltoMeters(startY),geometry.Rotation2d.fromDegrees(startAngle))
     endPoint = geometry.Pose2d(pixeltoMeters(endX),pixeltoMeters(endY),geometry.Rotation2d.fromDegrees(endAngle))
     configSettings = trajectory.TrajectoryConfig(MAX_SPEED_MPS,MAX_ACCELERATION_MPS_SQUARED)
@@ -112,18 +115,19 @@ def generateTrajectoryVector(startX,startY,startAngle,endX,endY):
     x = startX - endX
     endAngle = normalizeAngle((math.atan2(y,x) * 180 / math.pi)+180)
     iterations = 1
-    coords = generate(startX,startY,startAngle,endX,endY,endAngle) #generate straight line
+    coords = generateCubic(startX,startY,startAngle,endX,endY,endAngle) #generate straight line
 
     #keep adding waypoints until robot's path is clear
     while(True):
         foundWaypoint = fixBoundaryTrespassing(coords)
-        coords = generate(startX,startY,startAngle,endX,endY,endAngle) #generate splined trajectory
+        coords = generateCubic(startX,startY,startAngle,endX,endY,endAngle) #generate splined trajectory
         if (not foundWaypoint) or iterations >= MAXIMUM_WAYPOINTS:
             break
         iterations += 1
 
     for i,coord in enumerate(waypoints):
         waypoints[i] = (meterstoPixels(coord[0]), meterstoPixels(coord[1]))
+        
     return waypoints, coords
 
 def uploadStates(traject: trajectory):
